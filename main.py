@@ -27,7 +27,7 @@ trino_conn_dist = connect(
 )
 # Connexion Trino
 trino_conn_post = connect(
-    host='10.10.20.36', 
+    host='10.10.20.36',  
     port=30808,
     user='admin',
     catalog='sime-postgresql',
@@ -224,7 +224,11 @@ df_inci_man['yearstartday'] = df_inci_man['yearstart'].dt.weekday +1
 df_inci_man['numsem_iso'] = df_inci_man['numsem_iso'].astype(str).str.zfill(2)
 df_inci_man['semaine_full'] = df_inci_man['annee_iso'].astype(str) + ' - S ' + df_inci_man['numsem_iso']
 
-obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
+# obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
+base_dir = os.path.dirname(__file__)  
+file_path = os.path.join(base_dir, "Objectif_tmc_2020_2024.xlsx")
+obj_tmc = pd.read_excel(file_path)
+
 print(obj_tmc.columns)
 obj_tmc['annee']=obj_tmc['DEBUT MOIS'].dt.year
 obj_tmc['cumul obj tmc'] = obj_tmc.groupby('annee')['OBJECTIF TMC'].cumsum()
@@ -386,7 +390,13 @@ join_df['TMC mm (PmoyH)']=join_df['TMC hh (PmoyH)']*60
 join_df['TMC mm (PmoyJ)']=join_df['TMC hh (PmoyJ)']*60
 
 
-struct=pd.read_excel("Structures.xlsx")
+# struct=pd.read_excel("Structures.xlsx")
+
+base_dir = os.path.dirname(__file__)  
+file_path = os.path.join(base_dir, "Structures.xlsx")
+
+struct = pd.read_excel(file_path)
+
 struct['IMPUTATION'] = struct['IMPUTATION'].str.strip()
 struct['GROUPEMENT'] = struct['GROUPEMENT'].str.strip()
 struct['SEGMENT'] = struct['SEGMENT'].str.strip()
