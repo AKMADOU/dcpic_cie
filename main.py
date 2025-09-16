@@ -6,57 +6,33 @@ import calendar
 import math
 from pathlib import Path
 from trino.dbapi import connect
-from airflow.hooks.base import BaseHook
+
 import os
-# # Connexion Trino
-# trino_conn_pro = connect(
-#     host='10.10.20.36',  
-#     port=30808,
-#     user='admin',
-#     catalog='sime-production',
-#     schema='dbo'    
-# )
-
-# # Connexion Trino
-# trino_conn_dist = connect(
-#     host='10.10.20.36',  
-#     port=30808,
-#     user='admin',
-#     catalog='sime-distribution',
-#     schema='dbo'    
-# )
-# # Connexion Trino
-# trino_conn_post = connect(
-#     host='10.10.20.36',  
-#     user='admin',
-#     catalog='sime-postgresql',
-#     schema='dbo'    
-# )
-trino_conn_airflow = BaseHook.get_connection("trino_conn")
-# Créer les connexions à partir de la connexion Airflow
+# Connexion Trino
 trino_conn_pro = connect(
-    host=trino_conn_airflow.host,
-    port=trino_conn_airflow.port,
-    user=trino_conn_airflow.login,
-    catalog=trino_conn_airflow.extra_dejson.get("catalog", "sime-production"),
-    schema=trino_conn_airflow.extra_dejson.get("schema", "dbo")
+    host='10.10.20.36',  
+    port=30808,
+    user='admin',
+    catalog='sime-production',
+    schema='dbo'    
 )
 
+# Connexion Trino
 trino_conn_dist = connect(
-    host=trino_conn_airflow.host,
-    port=trino_conn_airflow.port,
-    user=trino_conn_airflow.login,
-    catalog=trino_conn_airflow.extra_dejson.get("catalog", "sime-distribution"),
-    schema=trino_conn_airflow.extra_dejson.get("schema", "dbo")
+    host='10.10.20.36',  
+    port=30808,
+    user='admin',
+    catalog='sime-distribution',
+    schema='dbo'    
+)
+# Connexion Trino
+trino_conn_post = connect(
+    host='10.10.20.36',  
+    user='admin',
+    catalog='sime-postgresql',
+    schema='dbo'    
 )
 
-trino_conn_post = connect(
-    host=trino_conn_airflow.host,
-    port=trino_conn_airflow.port,
-    user=trino_conn_airflow.login,
-    catalog=trino_conn_airflow.extra_dejson.get("catalog", "sime-postgresql"),
-    schema=trino_conn_airflow.extra_dejson.get("schema", "dbo")
-)
 
 data_dir = Path('data/')
 res_dir = Path('results/')
