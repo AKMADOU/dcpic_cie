@@ -27,7 +27,8 @@ trino_conn_dist = connect(
 )
 # Connexion Trino
 trino_conn_post = connect(
-    host='10.10.20.36',  
+    host='10.10.20.36', 
+    port=30808,
     user='admin',
     catalog='sime-postgresql',
     schema='dbo'    
