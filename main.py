@@ -315,7 +315,8 @@ inci_man_obj = inci_man_obj.drop('objectif tmc', axis=1)
 inci_man_obj = inci_man_obj.sort_values(by='date')
 
 
-df_el_sime= pd.read_excel("./data/db_el_hta.xlsx")
+# df_el_sime= pd.read_excel("./data/db_el_hta.xlsx")
+df_el_sime=df_el_hta_clean
 df_el_sime= df_el_sime.drop_duplicates()
 df_el_sime['annee']=df_el_sime['date_mois'].dt.year
 df_el_sime['annee']=df_el_sime['date_mois'].dt.year
@@ -323,7 +324,8 @@ df_el_sime = df_el_sime[(df_el_sime['annee'] >= 2020)]
 df_el_sime = df_el_sime[['date_mois','energie','depart','poste_source','annee']]
 
 
-df_el_tcel= pd.read_excel("./data/db_tcel_hta.xlsx")
+# df_el_tcel= pd.read_excel("./data/db_tcel_hta.xlsx")
+df_el_tcel=df_el_hta
 df_el_tcel=df_el_tcel[["date","energie_livree","depart_el","poste_source"]]
 df_el_tcel['annee']=df_el_tcel['date'].dt.year
 df_el_tcel['date_mois'] = df_el_tcel['date'].dt.to_period('M').dt.start_time
