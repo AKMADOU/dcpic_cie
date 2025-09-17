@@ -293,8 +293,17 @@ df_inci_man['yearstartday'] = df_inci_man['yearstart'].dt.weekday +1
 df_inci_man['numsem_iso'] = df_inci_man['numsem_iso'].astype(str).str.zfill(2)
 df_inci_man['semaine_full'] = df_inci_man['annee_iso'].astype(str) + ' - S ' + df_inci_man['numsem_iso']
 
-obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
-print(obj_tmc.columns)
+# Récupère le chemin du dossier où se trouve main.py
+repo_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construit le chemin complet vers le fichier Excel
+excel_path = os.path.join(repo_dir, "Objectif_tmc_2020_2024.xlsx")
+
+# Charge le fichier
+obj_tmc = pd.read_excel(excel_path)
+
+# obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
+# print(obj_tmc.columns)
 obj_tmc['annee']=obj_tmc['DEBUT MOIS'].dt.year
 obj_tmc['cumul obj tmc'] = obj_tmc.groupby('annee')['OBJECTIF TMC'].cumsum()
 obj_tmc = obj_tmc[['DEBUT MOIS','OBJECTIF TMC','cumul obj tmc']]
@@ -455,7 +464,14 @@ join_df['TMC mm (PmoyH)']=join_df['TMC hh (PmoyH)']*60
 join_df['TMC mm (PmoyJ)']=join_df['TMC hh (PmoyJ)']*60
 
 
-struct=pd.read_excel("Structures.xlsx")
+# struct=pd.read_excel("Structures.xlsx")
+
+# Construit le chemin complet vers le fichier Excel
+struct = os.path.join(repo_dir, "Structures.xlsx")
+
+# Charge le fichier
+struct = pd.read_excel(struct)
+
 struct['IMPUTATION'] = struct['IMPUTATION'].str.strip()
 struct['GROUPEMENT'] = struct['GROUPEMENT'].str.strip()
 struct['SEGMENT'] = struct['SEGMENT'].str.strip()
