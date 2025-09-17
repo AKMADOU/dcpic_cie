@@ -163,18 +163,37 @@ obj_tmc['cumul obj tmc'] = obj_tmc.groupby('annee')['OBJECTIF TMC'].cumsum()
 obj_tmc = obj_tmc[['DEBUT MOIS','cumul obj tmc']]
 obj_tmc.columns = obj_tmc.columns.str.lower()
 
-inci_man_obj = pd.merge(df_inci_man, obj_tmc, left_on='debut mois', right_on='debut mois', how='left')
+inci_man_obj = pd.merge(df_inci_man, obj_tmc, on='debut mois')
 inci_man_obj['obj tmc'] = inci_man_obj['cumul obj tmc'].round(0)
-inci_man_obj.drop('cumul obj tmc', axis=1, inplace=True)
+inci_man_obj = inci_man_obj.drop('objectif tmc', axis=1)
+inci_man_obj = inci_man_obj.sort_values(by='date')
+
+
 
 # ================================
 # Merge avec énergies
 # ================================
-df_energie = df_el[['annee','mois','energie','nombre_heures']].drop_duplicates()
-join_df = pd.merge(inci_man_obj, df_energie, left_on=['annee','num_mois'], right_on=['annee','mois'], how='left')
+ join_df = pd.merge(
+        inci_man_obj, 
+        df_power[['annee', 'mois', 'energie', 'energie_Cumul', 'PmoyJ', 'PmoyH', 'PmoyM', 'PmoyA']],
+        left_on=['annee', 'num_mois'],
+        right_on=['annee', 'mois'],
+        how='left'
+    )
+join_df['energie Liv (GWh)'] = join_df['energie'] / 1000000
+join_df['energie cum Liv (GWh)'] = join_df['energie_Cumul'] / 1000000
 
-join_df['energie Liv (GWh)'] = join_df['energie']/1e6
-join_df['energie cum Liv (GWh)'] = join_df['energie'].cumsum()/1e6
+    # Calcul des TMC
+join_df['end (mwh)'] = join_df['end (mwh)'] / 1000
+join_df['end_mwh_2'] = join_df['end_mwh_2'] / 1000
+
+join_df['TMC hh (PmoyH)'] = join_df['end_mwh_2'] / join_df['PmoyH']
+join_df['TMC hh (PmoyJ)'] = join_df['end_mwh_2'] / join_df['PmoyJ']
+join_df['TMC jj (PmoyH)'] = join_df['TMC hh (PmoyH)'] / 24
+join_df['TMC mm (PmoyH)'] = join_df['TMC hh (PmoyH)'] * 60
+join_df['TMC mm (PmoyJ)'] = join_df['TMC hh (PmoyJ)'] * 60
+
+
 
 # ================================
 # Lecture structures et merge
@@ -186,7 +205,23 @@ struct['groupement'] = struct['groupement'].str.strip()
 struct['segment'] = struct['segment'].str.strip()
 struct.drop_duplicates(inplace=True)
 
-join_data = pd.merge(join_df, struct, on='imputation', how='left')
+join_df['imputation'] = join_df['imputation'].str.strip()
+join_data = pd.merge(join_df, struct, on=['imputation'], how='left')
+join_data = join_data.drop(['mois_y'], axis=1)
+
+column_renoms3 = {
+        'mois_x': 'mois',
+        'mois_mmm': 'mois MMM',
+        'num_mois': 'NUM mois',
+        'mois_mmm_aa': 'mois MMM-AA',
+        'numsem_iso': 'NUMSEM ISO',
+        'annee_iso': 'annee ISO',
+        'rg_semaine': 'RG semaine',
+        'semaine_full': 'semaine FULL'
+    }
+join_data.rename(columns=column_renoms3, inplace=True)
+
+# Nettoyage des données nulles
 join_data.dropna(subset=['segment'], inplace=True)
 
 # ================================
