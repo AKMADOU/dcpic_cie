@@ -1,7 +1,4 @@
-# config.py
-"""
-Configuration et données confidentielles
-"""
+from trino.dbapi import connect
 
 # Configuration Trino
 TRINO_CONFIG = {
