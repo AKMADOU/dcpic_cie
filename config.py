@@ -1,6 +1,5 @@
 from trino.dbapi import connect
 import sqlalchemy as sa
-
 # Configuration Trino
 TRINO_CONFIG = {
     'host': '10.10.20.36',
@@ -46,6 +45,7 @@ NESSIE_CONFIG = {
     'trino_schema': 'sime-dwh'
 }
 
+
 # Création des connexions Trino (objets manquants)
 def create_trino_connection(catalog, schema='dbo'):
     """Crée une connexion Trino pour un catalogue donné"""
@@ -70,6 +70,8 @@ def get_data_file_path(filename):
     repo_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(repo_dir, filename)
 
+
+# Fichiers de données
 DATA_FILES = {
     'objectif_tmc': 'Objectif_tmc_2020_2024.xlsx',
     'structures': 'Structures.xlsx'
