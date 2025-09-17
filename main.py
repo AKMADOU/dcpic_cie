@@ -302,6 +302,7 @@ excel_path = os.path.join(repo_dir, "Objectif_tmc_2020_2024.xlsx")
 # Charge le fichier
 obj_tmc = pd.read_excel(excel_path)
 
+
 # obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
 # print(obj_tmc.columns)
 obj_tmc['annee']=obj_tmc['DEBUT MOIS'].dt.year
@@ -327,6 +328,7 @@ df_el_sime = df_el_sime[['date_mois','energie','depart','poste_source','annee']]
 # df_el_tcel= pd.read_excel("./data/db_tcel_hta.xlsx")
 df_el_tcel=df_el_hta
 df_el_tcel=df_el_tcel[["date","energie_livree","depart_el","poste_source"]]
+df_el_tcel['date'] = pd.to_datetime(df_el_tcel['date'], errors='coerce')
 df_el_tcel['annee']=df_el_tcel['date'].dt.year
 df_el_tcel['date_mois'] = df_el_tcel['date'].dt.to_period('M').dt.start_time
 
@@ -468,10 +470,10 @@ join_df['TMC mm (PmoyJ)']=join_df['TMC hh (PmoyJ)']*60
 
 # struct=pd.read_excel("Structures.xlsx")
 
-# Construit le chemin complet vers le fichier Excel
+# # Construit le chemin complet vers le fichier Excel
 struct = os.path.join(repo_dir, "Structures.xlsx")
 
-# Charge le fichier
+# # Charge le fichier
 struct = pd.read_excel(struct)
 
 struct['IMPUTATION'] = struct['IMPUTATION'].str.strip()
@@ -505,4 +507,3 @@ push_df_to_nessie(df=df_man_htb, pg_table_name="temp_df_db_man_htb_hta_2",trino_
 push_df_to_nessie(df=df_inci_htb, pg_table_name="temp_df_db_inci_htb",trino_table_name="db_inci_htb")
 push_df_to_nessie(df=df_el_hta, pg_table_name="temp_df_db_tcel_hta",trino_table_name="db_tcel_hta")
 push_df_to_nessie(df=df_el_hta_clean,pg_table_name="temp_df_db_el_hta", trino_table_name="db_el_hta")
-
