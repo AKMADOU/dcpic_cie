@@ -6,8 +6,13 @@ import calendar
 import math
 from pathlib import Path
 from trino.dbapi import connect
-
 import os
+import duckdb
+from urllib.parse import quote_plus
+import duckdb
+import sqlalchemy as sa
+
+
 # Connexion Trino
 trino_conn_pro = connect(
     host='10.10.20.36',  
@@ -34,12 +39,81 @@ trino_conn_post = connect(
     schema='dbo'    
 )
 
+# Connexion Trino
+trino_conn = connect(
+    host='10.10.20.36',  
+    port=30808,
+    user='admin',
+    catalog='minio-test',
+    schema='sime-dwh'    
+)
 
-data_dir = Path('data/')
-res_dir = Path('results/')
 
-os.makedirs(data_dir, exist_ok=True)	
-os.makedirs(res_dir, exist_ok=True)
+
+def push_df_to_nessie(df, pg_table_name, trino_table_name,
+                      pg_user="postgres", pg_password="postgres",
+                      pg_host="10.10.20.36", pg_port=30894, pg_db="postgres_cie",
+                      trino_user="admin", trino_host="10.10.20.36", trino_port=30808,
+                      trino_catalog="minio-test", trino_schema="sime-dwh"):
+    """
+    Fonction pour envoyer un DataFrame vers Postgres via DuckDB et créer une table CETAS dans Trino/Nessie.
+    """
+    # ==================================================
+    # 1. Connexion DuckDB (in-memory)
+    # ==================================================
+    con = duckdb.connect()
+    con.register("df_local", df)
+    
+    # Encodage du mot de passe Postgres
+    encoded_password = quote_plus(pg_password)
+    pg_conn_str = f"{pg_user}:{encoded_password}@{pg_host}:{pg_port}/{pg_db}"
+    
+    # Installer et charger l'extension PostgreSQL
+    con.execute("""
+    INSTALL postgres;
+    LOAD postgres;
+    """)
+    
+    # Attacher Postgres
+    con.execute(f"ATTACH 'postgresql://{pg_conn_str}' AS pg (TYPE POSTGRES);")
+    
+    # Créer ou remplacer la table dans Postgres
+    con.execute(f"CREATE OR REPLACE TABLE pg.{pg_table_name} AS SELECT * FROM df_local;")
+    print(f"✅ Table '{pg_table_name}' créée dans Postgres")
+    
+    # Vérification
+    result = con.execute(f"SELECT COUNT(*) FROM pg.{pg_table_name}").fetchone()
+    print(f"✅ Nombre de lignes dans la table Postgres : {result[0]}")
+    
+    # ==================================================
+    # 2. Connexion Trino
+    # ==================================================
+    trino_engine = sa.create_engine(f"trino://{trino_user}@{trino_host}:{trino_port}?auth=none")
+    
+    # Création de la table CETAS dans Trino/Nessie
+    cetas_query = f"""
+    CREATE OR REPLACE TABLE "{trino_catalog}"."{trino_schema}"."{trino_table_name}" AS
+    SELECT * FROM "{pg_db}".public.{pg_table_name}
+    """
+    
+    try:
+        with trino_engine.connect() as conn:
+            conn.execute(sa.text(cetas_query))
+        print(f"✅ Table '{trino_table_name}' créée dans Nessie via CETAS")
+    except Exception as e:
+        print(f"❌ Erreur lors de la création de la table Trino/Nessie: {e}")
+    
+    # Vérification
+    try:
+        with trino_engine.connect() as conn:
+            result = conn.execute(sa.text(f'SELECT * FROM "{trino_catalog}"."{trino_schema}"."{trino_table_name}" LIMIT 5'))
+            print("✅ Premières lignes de la table CETAS :")
+            for row in result:
+                print(row)
+    except Exception as e:
+        print(f"❌ Erreur lors de la vérification Trino/Nessie: {e}")
+
+
 
 
 q_tcel_hta = pd.read_sql_query("""
@@ -117,37 +191,32 @@ q_el_hta = pd.read_sql_query("""
 
 
 
+
+
 df_el_hta = pd.DataFrame(q_el_hta)
 df_el_hta = df_el_hta.drop_duplicates(subset=['date_mois', 'depart_id'], keep='last')
 df_el_hta.date_mois = pd.to_datetime(df_el_hta.date_mois)
-df_el_hta.set_index('date_mois', drop=True, inplace=True)
-df_el_hta_clean = df_el_hta[~df_el_hta.depart.str.contains('ARV|DPT|TFO|D2|D1|D 1|D 2')]
-df_el_hta_clean.to_excel(data_dir / 'db_el_hta.xlsx')
+df_el_hta['date_mois'] = pd.to_datetime(df_el_hta['date_mois'])
 
-df_el_hta.head(5)
+df_el_hta_clean = df_el_hta[~df_el_hta.depart.str.contains('ARV|DPT|TFO|D2|D1|D 1|D 2')]
 
 df_el_hta = pd.DataFrame(q_tcel_hta)
-df_el_hta.to_excel(data_dir / 'db_tcel_hta.xlsx')
 
 
 df_inci_htb = pd.DataFrame(q_inci_htb)
 df_inci_htb.date_heure_debut= pd.to_datetime(df_inci_htb.date_heure_debut)
-df_inci_htb.set_index('date_heure_debut', drop=True, inplace=True)
-df_inci_htb.to_csv(data_dir / 'db_inci_htb.csv')
+df_inci_htb['date_heure_debut'] = pd.to_datetime(df_inci_htb['date_heure_debut'])
+
 
 
 df_man_htb = pd.DataFrame(q_man_htb_hta)
 df_man_htb.date_heure_debut = pd.to_datetime(df_man_htb.date_heure_debut)
-df_man_htb.set_index('date_heure_debut', drop=True, inplace=True)
-df_man_htb.to_excel(data_dir / 'db_man_htb_hta_2.xlsx')
-
-
-df_inci =pd.read_csv("./data/db_inci_htb.csv")
-
-df_man =pd.read_excel("./data/db_man_htb_hta_2.xlsx")
-
+df_man_htb['date_heure_debut'] = pd.to_datetime(df_man_htb['date_heure_debut'])
+df_inci = df_inci_htb
+df_man =df_man_htb
 df_inci= df_inci.drop_duplicates()
 df_inci.dropna(subset=['imputation'], inplace=True)
+
 
 df_inci['date_heure_debut'] = pd.to_datetime(df_inci['date_heure_debut'])
 df_inci['date_heure_fin'] = pd.to_datetime(df_inci['date_heure_fin'])
@@ -224,11 +293,7 @@ df_inci_man['yearstartday'] = df_inci_man['yearstart'].dt.weekday +1
 df_inci_man['numsem_iso'] = df_inci_man['numsem_iso'].astype(str).str.zfill(2)
 df_inci_man['semaine_full'] = df_inci_man['annee_iso'].astype(str) + ' - S ' + df_inci_man['numsem_iso']
 
-# obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
-base_dir = os.path.dirname(__file__)  
-file_path = os.path.join(base_dir, "Objectif_tmc_2020_2024.xlsx")
-obj_tmc = pd.read_excel(file_path)
-
+obj_tmc=pd.read_excel("Objectif_tmc_2020_2024.xlsx")
 print(obj_tmc.columns)
 obj_tmc['annee']=obj_tmc['DEBUT MOIS'].dt.year
 obj_tmc['cumul obj tmc'] = obj_tmc.groupby('annee')['OBJECTIF TMC'].cumsum()
@@ -390,13 +455,7 @@ join_df['TMC mm (PmoyH)']=join_df['TMC hh (PmoyH)']*60
 join_df['TMC mm (PmoyJ)']=join_df['TMC hh (PmoyJ)']*60
 
 
-# struct=pd.read_excel("Structures.xlsx")
-
-base_dir = os.path.dirname(__file__)  
-file_path = os.path.join(base_dir, "Structures.xlsx")
-
-struct = pd.read_excel(file_path)
-
+struct=pd.read_excel("Structures.xlsx")
 struct['IMPUTATION'] = struct['IMPUTATION'].str.strip()
 struct['GROUPEMENT'] = struct['GROUPEMENT'].str.strip()
 struct['SEGMENT'] = struct['SEGMENT'].str.strip()
@@ -423,6 +482,9 @@ join_data.imputation.unique()
 join_data.groupement.unique()
 join_data.segment.unique()
 
+push_df_to_nessie(df=join_data, pg_table_name="temp_df_data",trino_table_name="data")
+push_df_to_nessie(df=df_man_htb, pg_table_name="temp_df_db_man_htb_hta_2",trino_table_name="db_man_htb_hta_2")
+push_df_to_nessie(df=df_inci_htb, pg_table_name="temp_df_db_inci_htb",trino_table_name="db_inci_htb")
+push_df_to_nessie(df=df_el_hta, pg_table_name="temp_df_db_tcel_hta",trino_table_name="db_tcel_hta")
+push_df_to_nessie(df=df_el_hta_clean,pg_table_name="temp_df_db_el_hta", trino_table_name="db_el_hta")
 
-data_dir = Path('data/')
-join_data.to_excel(data_dir / 'data.xlsx', index=False)
