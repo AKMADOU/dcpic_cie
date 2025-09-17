@@ -173,7 +173,7 @@ inci_man_obj = inci_man_obj.sort_values(by='date')
 # ================================
 # Merge avec énergies
 # ================================
- join_df = pd.merge(
+join_df = pd.merge(
         inci_man_obj, 
         df_power[['annee', 'mois', 'energie', 'energie_Cumul', 'PmoyJ', 'PmoyH', 'PmoyM', 'PmoyA']],
         left_on=['annee', 'num_mois'],
