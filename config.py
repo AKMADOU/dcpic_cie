@@ -1,4 +1,5 @@
 from trino.dbapi import connect
+import sqlalchemy as sa
 
 # Configuration Trino
 TRINO_CONFIG = {
@@ -44,6 +45,22 @@ NESSIE_CONFIG = {
     'trino_catalog': 'minio-test',
     'trino_schema': 'sime-dwh'
 }
+
+# Création des connexions Trino (objets manquants)
+def create_trino_connection(catalog, schema='dbo'):
+    """Crée une connexion Trino pour un catalogue donné"""
+    return connect(
+        host=TRINO_CONFIG['host'],
+        port=TRINO_CONFIG['port'],
+        user=TRINO_CONFIG['user'],
+        catalog=catalog,
+        schema=schema
+    )
+
+# Connexions Trino utilisées dans main.py
+trino_conn_pro = create_trino_connection('sime-production', 'dbo')
+trino_conn_dist = create_trino_connection('sime-distribution', 'dbo') 
+trino_conn_post = create_trino_connection('sime-postgresql', 'public')
 
 # Fichiers de données (chemins relatifs depuis le répertoire du script)
 import os
