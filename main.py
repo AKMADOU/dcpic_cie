@@ -98,7 +98,11 @@ df_el_tcel = df_el_tcel[['date_mois','energie','depart','poste_source','annee']]
 df_el_tcel = df_el_tcel.sort_values('date_mois')
 
 # Fusion énergies
-df_el_sime = df_el_hta_clean[['date_mois','energie','depart','poste_source','annee']]
+df_el_sime = df_el_hta_clean.copy()
+df_el_sime = df_el_sime.drop_duplicates()
+df_el_sime['annee'] = df_el_sime['date_mois'].dt.year
+df_el_sime = df_el_sime[df_el_sime['annee'] >= 2020]
+df_el_sime = df_el_sime[['date_mois', 'energie', 'depart', 'poste_source', 'annee']]
 df_el = pd.concat([df_el_sime, df_el_tcel], ignore_index=True)
 df_el['debut mois'] = df_el['date_mois'].dt.to_period('M').dt.start_time
 df_el['numsem_iso'] = df_el['date_mois'].apply(lambda x: Week.withdate(x).week)
