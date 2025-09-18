@@ -91,31 +91,13 @@ def extract_data(connections):
         WHERE EXTRACT(YEAR FROM vmt.date_heure_debut) >= 2020
     """, connections['distribution'])
 
-    # Extraction énergies livrées HTA
-    q_el_hta = pd.read_sql_query("""
-        SELECT elm.*,
-               dep.nom_expl AS depart,
-               pos.poste_nom_site AS poste_source
-        FROM "sime-production".dbo.energies_livrees_mens elm
-        INNER JOIN "sime-production".dbo.departs_ref dep
-            ON dep.depart_id = elm.depart_id
-        INNER JOIN "sime-production".dbo.postes_ref pos
-            ON pos.poste_id = dep.poste_id
-        WHERE EXTRACT(YEAR FROM elm.date_mois) >= 2018
-        ORDER BY elm.date_mois
-    """, connections['production'])
-
-    return q_tcel_hta, q_inci_htb, q_man_htb_hta, q_el_hta
 
 
-def process_energie_data(q_el_hta, q_tcel_hta):
+    return q_tcel_hta, q_inci_htb, q_man_htb_hta
+
+
+def process_energie_data( q_tcel_hta):
     """Traitement des données d'énergie"""
-    
-    # Traitement des données SIME
-    df_el_hta = pd.DataFrame(q_el_hta)
-    df_el_hta = df_el_hta.drop_duplicates(subset=['date_mois', 'depart_id'], keep='last')
-    df_el_hta['date_mois'] = pd.to_datetime(df_el_hta['date_mois'])
-    df_el_hta_clean = df_el_hta[~df_el_hta.depart.str.contains('ARV|DPT|TFO|D2|D1|D 1|D 2')]
 
     # Traitement des données TCEL
     df_el_tcel = pd.DataFrame(q_tcel_hta)
@@ -131,7 +113,8 @@ def process_energie_data(q_el_hta, q_tcel_hta):
     df_el_tcel = df_el_tcel.sort_values(by="date_mois", ascending=True)
 
     # Traitement SIME final
-    df_el_sime = df_el_hta_clean.copy()
+    df_el_sime = pd.read_excel("db_el_hta.xlsx")
+    df_el_sime.columns = df_el_sime.columns.str.lower()
     df_el_sime = df_el_sime.drop_duplicates()
     df_el_sime['annee'] = df_el_sime['date_mois'].dt.year
     df_el_sime = df_el_sime[df_el_sime['annee'] >= 2020]
@@ -152,7 +135,7 @@ def process_energie_data(q_el_hta, q_tcel_hta):
     df_el['num_mois'] = df_el['date_mois'].dt.month
     df_el['mois'] = df_el['date_mois'].dt.strftime('%Y-%m')
 
-    return df_el, df_el_hta_clean, df_el_tcel
+    return df_el, df_el_tcel
 
 
 def nombre_heures_total(mois, annee, energie_livree):
@@ -486,7 +469,6 @@ def main():
     push_df_to_nessie(df=df_man_htb, pg_table_name="temp_df_db_man_htb_hta_2", trino_table_name="db_man_htb_hta_2")
     push_df_to_nessie(df=df_inci_htb, pg_table_name="temp_df_db_inci_htb", trino_table_name="db_inci_htb")
     push_df_to_nessie(df=df_el_tcel, pg_table_name="temp_df_db_tcel_hta", trino_table_name="db_tcel_hta")
-    push_df_to_nessie(df=df_el_hta_clean, pg_table_name="temp_df_db_el_hta", trino_table_name="db_el_hta")
     
     print("✅ Traitement terminé avec succès!")
     
