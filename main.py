@@ -436,11 +436,11 @@ def main():
     
     # 2. Extraction des données
     print("Extraction des données...")
-    q_tcel_hta, q_inci_htb, q_man_htb_hta, q_el_hta = extract_data(connections)
+    q_tcel_hta, q_inci_htb, q_man_htb_hta = extract_data(connections)
     
     # 3. Traitement des données d'énergie
     print("Traitement des données d'énergie...")
-    df_el, df_el_hta_clean, df_el_tcel = process_energie_data(q_el_hta, q_tcel_hta)
+    df_el, df_el_tcel = process_energie_data( q_tcel_hta)
     df_power = process_power_calculations(df_el)
     
     # 4. Traitement des incidents et manœuvres
