@@ -2,8 +2,7 @@ import os
 import duckdb
 import sqlalchemy as sa
 from urllib.parse import quote_plus
-from config import POSTGRES_CONFIG, NESSIE_CONFIG,config
-
+from .config import POSTGRES_CONFIG, NESSIE_CONFIG
 
 def push_df_to_nessie(df, pg_table_name, trino_table_name,
                       pg_user=None, pg_password=None,
