@@ -147,6 +147,98 @@ def nombre_heures_total(mois, annee, energie_livree):
         return 0
 
 
+# def process_power_calculations(df_el):
+#     """Traitement des calculs de puissance"""
+    
+#     df_el['nombre_heures'] = df_el.apply(
+#         lambda row: nombre_heures_total(row['mois_mmm'], row['annee'], row['energie']), 
+#         axis=1
+#     )
+    
+#     dico = df_el.groupby(['mois_mmm_aa'])['energie'].sum().to_dict()
+#     df_el['energie_mois'] = df_el.mois_mmm_aa.map(dico)
+#     df_el['PmoyM'] = df_el['energie_mois'] / df_el['nombre_heures']
+
+#     dico2 = df_el.groupby(['annee', 'num_mois'])['energie'].sum().to_dict()
+
+#     annee = []
+#     mois = []
+#     energie = []
+
+#     for key, value in dico2.items():
+#         annee.append(key[0])
+#         mois.append(key[1])
+#         energie.append(value)
+
+#     df = pd.DataFrame({
+#         'annee': annee,
+#         'mois': mois,
+#         'energie': energie
+#     })
+
+#     df = df.sort_values(['annee', 'mois'])
+#     df = df.drop(df.index[-1])
+#     df = df.sort_values(['annee', 'mois'])
+
+#     df_el_merge = df_el.rename(columns={'num_mois': 'mois'})[['annee', 'mois', 'nombre_heures']]
+#     df_el_merge = df_el_merge.loc[:, ~df_el_merge.columns.duplicated()]
+#     df = df.merge(df_el_merge, on=['annee', 'mois'], how='left').drop_duplicates()
+
+#     df['energie_Cumul'] = df.groupby('annee')['energie'].cumsum()
+#     df['NBH_Cumul'] = df.groupby('annee')['nombre_heures'].cumsum()
+
+#     df['PmoyJ'] = df['energie'] / (31 * 24)
+#     df['PmoyH'] = (df['energie'] / 4) / 168
+#     df['PmoyM'] = df['energie'] / df['nombre_heures']
+#     df['PmoyA'] = df['energie_Cumul'] / df['NBH_Cumul']
+
+#     df['PmoyJ'] = df['PmoyJ'] / 1000
+#     df['PmoyM'] = df['PmoyM'] / 1000
+#     df['PmoyH'] = df['PmoyH'] / 1000
+#     df['PmoyA'] = df['PmoyA'] / 1000
+
+#     # Ajout de nouvelles lignes
+#     derniere_ligne = df.iloc[-1]
+#     nouveau_mois = derniere_ligne["mois"] + 1
+#     nouvelle_année = derniere_ligne["annee"]
+    
+#     if nouveau_mois > 12:
+#         nouveau_mois = 1
+#         nouvelle_année += 1
+#         nouvelle_energie_cumul = derniere_ligne["energie"]
+#     else:
+#         nouvelle_energie_cumul = derniere_ligne["energie_Cumul"] + derniere_ligne["energie"]
+
+#     nouvelle_ligne = {
+#         "annee": nouvelle_année,
+#         "mois": nouveau_mois,
+#         "energie": derniere_ligne["energie"],
+#         "nombre_heures": derniere_ligne["nombre_heures"],
+#         "energie_Cumul": nouvelle_energie_cumul,
+#         "NBH_Cumul": derniere_ligne["NBH_Cumul"],
+#         "PmoyJ": derniere_ligne["PmoyJ"],
+#         "PmoyH": derniere_ligne["PmoyH"],
+#         "PmoyM": derniere_ligne["PmoyM"],
+#         "PmoyA": derniere_ligne["PmoyA"],
+#     }
+
+#     df = pd.concat([df, pd.DataFrame([nouvelle_ligne])], ignore_index=True)
+
+#     new_row = pd.DataFrame({
+#         'annee': [2025], 
+#         'mois': [7], 
+#         'energie': [1.189239e+09], 
+#         'nombre_heures': [744.0], 
+#         'energie_Cumul': [7.130640e+09 + 1.189239e+09], 
+#         'NBH_Cumul': [3624.0], 
+#         'PmoyJ': [1598.440039], 
+#         'PmoyH': [1769.701472],
+#         'PmoyM': [1598.440039], 
+#         'PmoyA': [1639.459228]
+#     })
+#     df = pd.concat([df, new_row], ignore_index=True)
+
+#     return df
 def process_power_calculations(df_el):
     """Traitement des calculs de puissance"""
     
@@ -176,14 +268,52 @@ def process_power_calculations(df_el):
         'energie': energie
     })
 
-    df = df.sort_values(['annee', 'mois'])
-    df = df.drop(df.index[-1])
-    df = df.sort_values(['annee', 'mois'])
-
+    df = df.sort_values(['annee', 'mois']).reset_index(drop=True)
+    
+    # Traitement de fiabilisation des données 
+    date_aujourdhui = date.today()
+    mois_encours = date_aujourdhui.month
+    annee_en_cours = date_aujourdhui.year
+    jour_encours = date_aujourdhui.day
+    
+    print(f"Debug - Date actuelle: {date_aujourdhui}")
+    print(f"Debug - Avant suppression, nb lignes: {len(df)}")
+    print(f"Debug - Dernières lignes avant suppression:\n{df.tail()}")
+    
+    # Supprimer les 2 derniers mois (données incomplètes)
+    if len(df) >= 2:
+        df = df.iloc[:-2].copy()
+    
+    # Condition de fiabilisation additionnelle
+    if len(df) > 0:
+        dernier_mois_df = df['mois'].iloc[-1]
+        derniere_annee_df = df['annee'].iloc[-1]
+        
+        print(f"Debug - Après suppression, nb lignes: {len(df)}")
+        print(f"Debug - Dernier mois dans df: {dernier_mois_df}, année: {derniere_annee_df}")
+        
+        # Si on est en début de mois (jour < 5) et que le dernier mois est le mois précédent
+        # on supprime une ligne de plus
+        if jour_encours < 5:
+            mois_precedent = mois_encours - 1 if mois_encours > 1 else 12
+            annee_precedent = annee_en_cours if mois_encours > 1 else annee_en_cours - 1
+            
+            if dernier_mois_df == mois_precedent and derniere_annee_df == annee_precedent:
+                if len(df) >= 1:
+                    df = df.iloc[:-1].copy()
+                    print(f"Debug - Suppression additionnelle (début de mois), nb lignes: {len(df)}")
+    
+    df = df.sort_values(['annee', 'mois']).reset_index(drop=True)
+    
+    # Merge avec nombre_heures
     df_el_merge = df_el.rename(columns={'num_mois': 'mois'})[['annee', 'mois', 'nombre_heures']]
-    df_el_merge = df_el_merge.loc[:, ~df_el_merge.columns.duplicated()]
+    df_el_merge = df_el_merge.loc[:, ~df_el_merge.columns.duplicated()].drop_duplicates()
     df = df.merge(df_el_merge, on=['annee', 'mois'], how='left').drop_duplicates()
+    
+    print(f"Debug - Après merge, nb lignes: {len(df)}")
+    print(f"Debug - Dernières lignes après merge:\n{df.tail()}")
 
+    # Calculs des cumuls et moyennes
     df['energie_Cumul'] = df.groupby('annee')['energie'].cumsum()
     df['NBH_Cumul'] = df.groupby('annee')['nombre_heures'].cumsum()
 
@@ -197,48 +327,56 @@ def process_power_calculations(df_el):
     df['PmoyH'] = df['PmoyH'] / 1000
     df['PmoyA'] = df['PmoyA'] / 1000
 
-    # Ajout de nouvelles lignes
-    derniere_ligne = df.iloc[-1]
-    nouveau_mois = derniere_ligne["mois"] + 1
-    nouvelle_année = derniere_ligne["annee"]
+    print(f"Debug - Dernière ligne avant ajout de nouvelles lignes:\n{df.iloc[-1]}")
+
+    # Ajout de nouvelles lignes pour les prévisions
+    # On ajoute toujours 2 mois de prévision
+    for i in range(2):
+        derniere_ligne = df.iloc[-1].copy()
+        
+        nouveau_mois = int(derniere_ligne["mois"]) + 1
+        nouvelle_annee = int(derniere_ligne["annee"])
+        
+        # Gérer le passage à l'année suivante
+        if nouveau_mois > 12:
+            nouveau_mois = 1
+            nouvelle_annee += 1
+            # Réinitialiser les cumuls pour la nouvelle année
+            nouvelle_energie_cumul = float(derniere_ligne["energie"])
+            jours_nouveau_mois = calendar.monthrange(nouvelle_annee, nouveau_mois)[1]
+            nouveau_nombre_heures = float(jours_nouveau_mois * 24)
+            nouveau_nbh_cumul = nouveau_nombre_heures
+        else:
+            # Continuer les cumuls
+            nouvelle_energie_cumul = float(derniere_ligne["energie_Cumul"]) + float(derniere_ligne["energie"])
+            jours_nouveau_mois = calendar.monthrange(nouvelle_annee, nouveau_mois)[1]
+            nouveau_nombre_heures = float(jours_nouveau_mois * 24)
+            nouveau_nbh_cumul = float(derniere_ligne["NBH_Cumul"]) + nouveau_nombre_heures
+        
+        # Recalculer PmoyA avec les nouveaux cumuls
+        nouveau_pmoyA = nouvelle_energie_cumul / nouveau_nbh_cumul / 1000
+        
+        nouvelle_ligne = {
+            "annee": nouvelle_annee,
+            "mois": nouveau_mois,
+            "energie": float(derniere_ligne["energie"]),
+            "nombre_heures": nouveau_nombre_heures,
+            "energie_Cumul": nouvelle_energie_cumul,
+            "NBH_Cumul": nouveau_nbh_cumul,
+            "PmoyJ": float(derniere_ligne["PmoyJ"]),
+            "PmoyH": float(derniere_ligne["PmoyH"]),
+            "PmoyM": float(derniere_ligne["PmoyM"]),
+            "PmoyA": nouveau_pmoyA,
+        }
+        
+        print(f"Debug - Ajout ligne prévision {i+1}: annee={nouvelle_annee}, mois={nouveau_mois}")
+        df = pd.concat([df, pd.DataFrame([nouvelle_ligne])], ignore_index=True)
+
+    print(f"Debug - Nb lignes final: {len(df)}")
+    print(f"Debug - Dernières lignes finales:\n{df.tail()}")
     
-    if nouveau_mois > 12:
-        nouveau_mois = 1
-        nouvelle_année += 1
-        nouvelle_energie_cumul = derniere_ligne["energie"]
-    else:
-        nouvelle_energie_cumul = derniere_ligne["energie_Cumul"] + derniere_ligne["energie"]
-
-    nouvelle_ligne = {
-        "annee": nouvelle_année,
-        "mois": nouveau_mois,
-        "energie": derniere_ligne["energie"],
-        "nombre_heures": derniere_ligne["nombre_heures"],
-        "energie_Cumul": nouvelle_energie_cumul,
-        "NBH_Cumul": derniere_ligne["NBH_Cumul"],
-        "PmoyJ": derniere_ligne["PmoyJ"],
-        "PmoyH": derniere_ligne["PmoyH"],
-        "PmoyM": derniere_ligne["PmoyM"],
-        "PmoyA": derniere_ligne["PmoyA"],
-    }
-
-    df = pd.concat([df, pd.DataFrame([nouvelle_ligne])], ignore_index=True)
-
-    new_row = pd.DataFrame({
-        'annee': [2025], 
-        'mois': [7], 
-        'energie': [1.189239e+09], 
-        'nombre_heures': [744.0], 
-        'energie_Cumul': [7.130640e+09 + 1.189239e+09], 
-        'NBH_Cumul': [3624.0], 
-        'PmoyJ': [1598.440039], 
-        'PmoyH': [1769.701472],
-        'PmoyM': [1598.440039], 
-        'PmoyA': [1639.459228]
-    })
-    df = pd.concat([df, new_row], ignore_index=True)
-
     return df
+
 
 
 def process_incidents_data(q_inci_htb):
