@@ -5,6 +5,7 @@ from isoweek import Week
 import calendar
 import math
 from trino.dbapi import connect
+from datetime import date
 import os
 
 # Imports des modules personnalisés
