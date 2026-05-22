@@ -42,9 +42,13 @@ def push_df_to_nessie(df, pg_table_name, trino_table_name,
     pg_conn_str = f"{pg_user}:{encoded_password}@{pg_host}:{pg_port}/{pg_db}"
 
     # Installer et charger l'extension PostgreSQL
-    con.execute("INSTALL postgres;")
-    con.execute("LOAD postgres;")
-
+    # con.execute("INSTALL postgres;")
+    # con.execute("LOAD postgres;")
+    try:
+      con.execute("LOAD postgres;")
+    except Exception as e:
+      print(f"Erreur chargement extension postgres : {e}")
+      raise
     # Attacher Postgres
     con.execute(f"ATTACH 'postgresql://{pg_conn_str}' AS pg (TYPE POSTGRES);")
 
