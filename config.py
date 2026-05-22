@@ -3,7 +3,7 @@ import sqlalchemy as sa
 # Configuration Trino
 TRINO_CONFIG = {
     'host': '10.10.20.36',
-    'port': 30808,
+    'port': 30181,
     'user': 'admin'
 }
 
@@ -40,7 +40,7 @@ POSTGRES_CONFIG = {
 NESSIE_CONFIG = {
     'trino_user': 'admin',
     'trino_host': '10.10.20.36',
-    'trino_port': 30808,
+    'trino_port': 30181,
     'trino_catalog': 'minio-test',
     'trino_schema': 'sime-dwh'
 }
