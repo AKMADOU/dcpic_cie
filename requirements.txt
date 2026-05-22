@@ -1,0 +1,8 @@
+isoweek
+pandas
+numpy
+openpyxl
+duckdb 
+psycopg2-binary
+sqlalchemy
+trino
